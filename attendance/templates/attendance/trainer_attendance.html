@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Trainer Attendance</title>
+</head>
+
+<body>
+
+    <h1>Trainer Attendance</h1>
+
+    {% if selected_group %}
+        <h2>
+            {{ selected_group.name }} - {{ selected_group.course.code }}
+        </h2>
+    {% endif %}
+
+
+    <!-- CLASS AND DATE SELECTOR -->
+
+    <form method="get">
+
+        <label for="group">Select class:</label>
+
+        <select id="group" name="group">
+
+            {% for group in class_groups %}
+
+                <option
+                    value="{{ group.id }}"
+                    {% if group.id == selected_group.id %}
+                        selected
+                    {% endif %}
+                >
+                    {{ group.name }} - {{ group.course.code }}
+                </option>
+
+            {% endfor %}
+
+        </select>
+
+
+        <label for="date">Select class date:</label>
+
+        <input
+            type="date"
+            id="date"
+            name="date"
+            value="{{ today|date:'Y-m-d' }}"
+        >
+
+        <button type="submit">
+            Load
+        </button>
+
+    </form>
+
+
+    <p>Date: {{ today }}</p>
+
+
+    <!-- ATTENDANCE SECTION -->
+
+    {% if session %}
+
+        <h3>Active Students</h3>
+
+        <form method="post">
+
+            {% csrf_token %}
+
+            <input
+                type="hidden"
+                name="group"
+                value="{{ selected_group.id }}"
+            >
+
+            <input
+                type="hidden"
+                name="date"
+                value="{{ today|date:'Y-m-d' }}"
+            >
+
+
+            {% for student in students %}
+
+                <p>
+
+                    <strong>
+                        {{ student.student_id }} -
+                        {{ student.full_name }}
+                    </strong>
+
+
+                    <label>
+                        <input
+                            type="radio"
+                            name="attendance_{{ student.id }}"
+                            value="P"
+                            {% if student.saved_status == 'P' %}
+                                checked
+                            {% endif %}
+                        >
+                        Present
+                    </label>
+
+
+                    <label>
+                        <input
+                            type="radio"
+                            name="attendance_{{ student.id }}"
+                            value="A"
+                            {% if student.saved_status == 'A' %}
+                                checked
+                            {% endif %}
+                        >
+                        Absent
+                    </label>
+
+
+                    <label>
+                        <input
+                            type="radio"
+                            name="attendance_{{ student.id }}"
+                            value="L"
+                            {% if student.saved_status == 'L' %}
+                                checked
+                            {% endif %}
+                        >
+                        Leave
+                    </label>
+
+
+                    <label>
+                        <input
+                            type="radio"
+                            name="attendance_{{ student.id }}"
+                            value="H"
+                            {% if student.saved_status == 'H' %}
+                                checked
+                            {% endif %}
+                        >
+                        Holiday
+                    </label>
+
+
+                    <label>
+                        <input
+                            type="radio"
+                            name="attendance_{{ student.id }}"
+                            value="C"
+                            {% if student.saved_status == 'C' %}
+                                checked
+                            {% endif %}
+                        >
+                        Cancelled
+                    </label>
+
+                </p>
+
+            {% empty %}
+
+                <p>No active students found.</p>
+
+            {% endfor %}
+
+
+            {% if students %}
+
+                <button type="submit">
+                    Submit Attendance
+                </button>
+
+            {% endif %}
+
+        </form>
+
+
+    {% else %}
+
+        <h3>No class scheduled for this date.</h3>
+
+    {% endif %}
+
+
+</body>
+
+</html>
