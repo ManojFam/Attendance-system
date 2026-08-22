@@ -8,6 +8,11 @@
 <body>
 
     <h1>Trainer Attendance</h1>
+    
+    <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit">Logout</button>
+    </form>
 
     {% if selected_group %}
         <h2>

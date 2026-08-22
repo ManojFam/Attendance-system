@@ -2,9 +2,12 @@ from datetime import datetime
 
 from django.shortcuts import render, redirect
 from django.utils import timezone
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 
 from .models import Student, ClassSession, Attendance, ClassGroup
+
+def is_trainer(user):
+    return user.groups.filter(name='Trainer').exists()
 
 @login_required
 def trainer_attendance(request):
