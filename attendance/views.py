@@ -2,10 +2,11 @@ from datetime import datetime
 
 from django.shortcuts import render, redirect
 from django.utils import timezone
+from django.contrib.auth.decorators import login_required
 
 from .models import Student, ClassSession, Attendance, ClassGroup
 
-
+@login_required
 def trainer_attendance(request):
 
     selected_date_string = (
