@@ -8,16 +8,27 @@
 <body>
 
     <h1>Trainer Attendance</h1>
-    
+
+
+    <!-- LOGOUT -->
+
     <form method="post" action="{% url 'logout' %}">
         {% csrf_token %}
-        <button type="submit">Logout</button>
+
+        <button type="submit">
+            Logout
+        </button>
     </form>
 
+
+    <!-- SELECTED CLASS -->
+
     {% if selected_group %}
+
         <h2>
             {{ selected_group.name }} - {{ selected_group.course.code }}
         </h2>
+
     {% endif %}
 
 
@@ -25,7 +36,9 @@
 
     <form method="get">
 
-        <label for="group">Select class:</label>
+        <label for="group">
+            Select class:
+        </label>
 
         <select id="group" name="group">
 
@@ -45,7 +58,9 @@
         </select>
 
 
-        <label for="date">Select class date:</label>
+        <label for="date">
+            Select class date:
+        </label>
 
         <input
             type="date"
@@ -61,14 +76,68 @@
     </form>
 
 
-    <p>Date: {{ today }}</p>
+    <p>
+        Date: {{ today }}
+    </p>
 
 
     <!-- ATTENDANCE SECTION -->
 
     {% if session %}
 
-        <h3>Active Students</h3>
+        <h3>
+            Active Students
+        </h3>
+
+
+        <!-- WHOLE CLASS STATUS -->
+
+        {% if students %}
+
+            <form method="post">
+
+                {% csrf_token %}
+
+                <input
+                    type="hidden"
+                    name="group"
+                    value="{{ selected_group.id }}"
+                >
+
+                <input
+                    type="hidden"
+                    name="date"
+                    value="{{ today|date:'Y-m-d' }}"
+                >
+
+
+                <button
+                    type="submit"
+                    name="class_status"
+                    value="H"
+                    onclick="return confirm('Are you sure you want to mark the whole class as Holiday? This will replace any existing attendance for this date.');"
+                >
+                    Mark Whole Class Holiday
+                </button>
+
+
+                <button
+                    type="submit"
+                    name="class_status"
+                    value="C"
+                    onclick="return confirm('Are you sure you want to mark the whole class as Cancelled? This will replace any existing attendance for this date.');"
+                >
+                    Mark Whole Class Cancelled
+                </button>
+
+            </form>
+
+            <br>
+
+        {% endif %}
+
+
+        <!-- INDIVIDUAL ATTENDANCE -->
 
         <form method="post">
 
@@ -135,37 +204,13 @@
                         Leave
                     </label>
 
-
-                    <label>
-                        <input
-                            type="radio"
-                            name="attendance_{{ student.id }}"
-                            value="H"
-                            {% if student.saved_status == 'H' %}
-                                checked
-                            {% endif %}
-                        >
-                        Holiday
-                    </label>
-
-
-                    <label>
-                        <input
-                            type="radio"
-                            name="attendance_{{ student.id }}"
-                            value="C"
-                            {% if student.saved_status == 'C' %}
-                                checked
-                            {% endif %}
-                        >
-                        Cancelled
-                    </label>
-
                 </p>
 
             {% empty %}
 
-                <p>No active students found.</p>
+                <p>
+                    No active students found.
+                </p>
 
             {% endfor %}
 
@@ -183,7 +228,9 @@
 
     {% else %}
 
-        <h3>No class scheduled for this date.</h3>
+        <h3>
+            No class scheduled for this date.
+        </h3>
 
     {% endif %}
 

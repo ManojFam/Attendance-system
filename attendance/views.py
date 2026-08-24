@@ -74,20 +74,39 @@ def trainer_attendance(request):
 
         if session:
 
-            for student in students:
+        # Check whether the whole class was marked
+        # Holiday or Cancelled
+            class_status = request.POST.get('class_status')
 
-                status = request.POST.get(
-                    f'attendance_{student.id}'
-                )
+            if class_status in ['H', 'C']:
 
-                if status:
+                for student in students:
+
                     Attendance.objects.update_or_create(
                         student=student,
                         session=session,
                         defaults={
-                            'status': status
+                            'status': class_status
                         }
-                    )
+                   )
+
+            else:
+
+            # Normal individual attendance
+                for student in students:
+
+                    status = request.POST.get(
+                        f'attendance_{student.id}'
+                   )
+
+                    if status:
+                        Attendance.objects.update_or_create(
+                            student=student,
+                            session=session,
+                            defaults={
+                                'status': status
+                            }
+                        )
 
         return redirect(
             f'/trainer/?group={selected_group.id}&date={selected_date}'

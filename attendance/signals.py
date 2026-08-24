@@ -11,12 +11,21 @@ def create_student_sessions(sender, instance, created, **kwargs):
 
     current_date = instance.start_date
 
+    weekday_fields = {
+        0: 'monday',
+        1: 'tuesday',
+        2: 'wednesday',
+        3: 'thursday',
+        4: 'friday',
+        5: 'saturday',
+        6: 'sunday',
+    }
+
     while current_date <= instance.end_date:
 
-        # Monday = 0
-        # Tuesday = 1
-        # Wednesday = 2
-        if current_date.weekday() in [0, 1, 2]:
+        weekday_field = weekday_fields[current_date.weekday()]
+
+        if getattr(instance.class_group, weekday_field):
 
             ClassSession.objects.get_or_create(
                 class_group=instance.class_group,

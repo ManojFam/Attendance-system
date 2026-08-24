@@ -11,16 +11,72 @@ class Course(models.Model):
 
 
 class ClassGroup(models.Model):
+
+    CLASS_DAYS_CHOICES = [
+        (1, '1 day per week'),
+        (2, '2 days per week'),
+        (3, '3 days per week'),
+        (4, '4 days per week'),
+        (5, '5 days per week'),
+        (6, '6 days per week'),
+        (7, '7 days per week'),
+    ]
+
     name = models.CharField(max_length=100)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE
+    )
+
+    class_days_per_week = models.PositiveSmallIntegerField(
+        choices=CLASS_DAYS_CHOICES,
+        default=3
+    )
+
+    monday = models.BooleanField(default=True)
+    tuesday = models.BooleanField(default=True)
+    wednesday = models.BooleanField(default=True)
+    thursday = models.BooleanField(default=False)
+    friday = models.BooleanField(default=False)
+    saturday = models.BooleanField(default=False)
+    sunday = models.BooleanField(default=False)
+
+    def clean(self):
+
+        selected_days = [
+            self.monday,
+            self.tuesday,
+            self.wednesday,
+            self.thursday,
+            self.friday,
+            self.saturday,
+            self.sunday,
+        ]
+
+        number_of_selected_days = sum(selected_days)
+
+        if number_of_selected_days != self.class_days_per_week:
+            raise ValidationError(
+                f"Please select exactly "
+                f"{self.class_days_per_week} class days. "
+                f"You currently selected "
+                f"{number_of_selected_days}."
+            )
 
     def __str__(self):
         return f"{self.name} - {self.course.code}"
 
 
 class Student(models.Model):
-    student_id = models.CharField(max_length=20, unique=True)
-    full_name = models.CharField(max_length=150)
+    student_id = models.CharField(
+        max_length=20,
+        unique=True
+    )
+
+    full_name = models.CharField(
+        max_length=150
+    )
 
     class_group = models.ForeignKey(
         ClassGroup,
@@ -59,6 +115,7 @@ class Student(models.Model):
 
 
 class ClassSession(models.Model):
+
     class_group = models.ForeignKey(
         ClassGroup,
         on_delete=models.PROTECT
@@ -69,7 +126,10 @@ class ClassSession(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['class_group', 'date'],
+                fields=[
+                    'class_group',
+                    'date'
+                ],
                 name='unique_class_session_per_date'
             )
         ]
@@ -79,6 +139,7 @@ class ClassSession(models.Model):
 
 
 class Attendance(models.Model):
+
     STATUS_CHOICES = [
         ('P', 'Present'),
         ('A', 'Absent'),
@@ -105,28 +166,48 @@ class Attendance(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['student', 'session'],
+                fields=[
+                    'student',
+                    'session'
+                ],
                 name='unique_attendance_per_student_session'
             )
         ]
 
     def clean(self):
+
         if self.student_id and self.session_id:
 
-            if self.student.class_group != self.session.class_group:
+            if (
+                self.student.class_group
+                != self.session.class_group
+            ):
                 raise ValidationError(
-                    "The student's class group does not match the session class group."
+                    "The student's class group does not "
+                    "match the session class group."
                 )
 
-            if self.session.date < self.student.start_date:
+            if (
+                self.session.date
+                < self.student.start_date
+            ):
                 raise ValidationError(
-                    "Attendance cannot be recorded before the student's start date."
+                    "Attendance cannot be recorded "
+                    "before the student's start date."
                 )
 
-            if self.session.date > self.student.end_date:
+            if (
+                self.session.date
+                > self.student.end_date
+            ):
                 raise ValidationError(
-                    "Attendance cannot be recorded after the student's end date."
+                    "Attendance cannot be recorded "
+                    "after the student's end date."
                 )
 
     def __str__(self):
-        return f"{self.student.student_id} - {self.session.date} - {self.status}"
+        return (
+            f"{self.student.student_id} - "
+            f"{self.session.date} - "
+            f"{self.status}"
+        )
