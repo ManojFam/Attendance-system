@@ -1,26 +1,28 @@
-<!DOCTYPE html>
-<html>
+{% extends 'attendance/base.html' %}
 
-<head>
-    <title>Login</title>
-</head>
+{% block title %}Log in · Attendance System{% endblock %}
 
-<body>
+{% block content %}
 
-    <h1>Attendance System Login</h1>
+    <div class="card login-card">
 
-    <form method="post">
+        <h1>Log in</h1>
+        <p class="subtitle">Trainers and admin staff.</p>
 
-        {% csrf_token %}
+        <form method="post">
 
-        {{ form.as_p }}
+            {% csrf_token %}
 
-        <button type="submit">
-            Login
-        </button>
+            {{ form.as_p }}
 
-    </form>
+            <input type="hidden" name="next" value="{{ next }}">
 
-</body>
+            <button type="submit" class="btn btn-primary">
+                Log in
+            </button>
 
-</html>
+        </form>
+
+    </div>
+
+{% endblock %}

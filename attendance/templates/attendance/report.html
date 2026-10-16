@@ -1,0 +1,158 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}Attendance report · Attendance System{% endblock %}
+
+{% block content %}
+
+    <h1>Attendance report</h1>
+    <p class="subtitle">
+        Attendance % = Present ÷ (sessions to date − Holiday − Cancelled).
+        Calculated up to {{ today|date:'j M Y' }}; future classes are not counted.
+    </p>
+
+
+    <!-- FILTERS -->
+
+    <form method="get" class="card row">
+
+        <label class="field" for="group">
+            Class
+            <select id="group" name="group">
+                <option value="">All classes</option>
+                {% for group in class_groups %}
+                    <option value="{{ group.id }}"
+                        {% if group.id == filters.group_id %}selected{% endif %}>
+                        {{ group.name }} - {{ group.course.code }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label class="field" for="status">
+            Students
+            <select id="status" name="status">
+                {% for value, label in status_choices %}
+                    <option value="{{ value }}"
+                        {% if value == filters.status %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label class="field" for="threshold">
+            Minimum %
+            <input type="number" id="threshold" name="threshold"
+                   min="0" max="100" value="{{ filters.threshold }}" style="width: 90px;">
+        </label>
+
+        <label class="field" for="below">
+            Show
+            <select id="below" name="below">
+                <option value="">Everyone</option>
+                <option value="1" {% if filters.below_only %}selected{% endif %}>Below minimum only</option>
+            </select>
+        </label>
+
+        <button type="submit" class="btn btn-primary">Apply</button>
+
+        <span class="spacer"></span>
+
+        <a class="btn" href="{% url 'attendance_report_csv' %}{% if export_query %}?{{ export_query }}{% endif %}">
+            Download CSV
+        </a>
+
+    </form>
+
+
+    <!-- SUMMARY -->
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-value">{{ rows|length }}</div>
+            <div class="stat-label">Students shown</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">{{ below_count }}</div>
+            <div class="stat-label">Below {{ filters.threshold }}%</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">{{ unmarked_total }}</div>
+            <div class="stat-label">Unmarked sessions</div>
+        </div>
+    </div>
+
+    {% if unmarked_total %}
+        <ul class="messages">
+            <li class="warning">
+                {{ unmarked_total }} past session{{ unmarked_total|pluralize }} ha{{ unmarked_total|pluralize:"s,ve" }}
+                no attendance entered yet. These currently count against the
+                student (like an absence), so some percentages may be lower than they should be.
+            </li>
+        </ul>
+    {% endif %}
+
+
+    <!-- TABLE -->
+
+    <div class="card table-wrap">
+
+        {% if rows %}
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Class</th>
+                        <th>Dates</th>
+                        <th>Status</th>
+                        <th class="num">P</th>
+                        <th class="num">A</th>
+                        <th class="num">L</th>
+                        <th class="num">H</th>
+                        <th class="num">C</th>
+                        <th class="num">Unmarked</th>
+                        <th class="num">Attendance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr {% if row.below_threshold %}class="below-threshold"{% endif %}>
+                            <td>
+                                <a href="{% url 'student_detail' row.student.pk %}">
+                                    {{ row.student.full_name }}
+                                </a>
+                                <div class="student-id">{{ row.student.student_id }}</div>
+                            </td>
+                            <td>{{ row.student.class_group.name }} · {{ row.student.class_group.course.code }}</td>
+                            <td>{{ row.student.start_date|date:'j M y' }} – {{ row.student.end_date|date:'j M y' }}</td>
+                            <td><span class="badge">{{ row.status }}</span></td>
+                            <td class="num">{{ row.summary.present }}</td>
+                            <td class="num">{{ row.summary.absent }}</td>
+                            <td class="num">{{ row.summary.leave }}</td>
+                            <td class="num">{{ row.summary.holiday }}</td>
+                            <td class="num">{{ row.summary.cancelled }}</td>
+                            <td class="num">{{ row.summary.unmarked }}</td>
+                            <td class="num">
+                                {% if row.summary.eligible_sessions %}
+                                    <span class="badge {% if row.below_threshold %}badge-low{% else %}badge-ok{% endif %}">
+                                        {{ row.summary.percentage_display }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge">No classes yet</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        {% else %}
+
+            <p class="empty">No students match these filters.</p>
+
+        {% endif %}
+
+    </div>
+
+{% endblock %}

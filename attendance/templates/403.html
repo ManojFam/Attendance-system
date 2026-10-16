@@ -1,0 +1,16 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}Access denied · Attendance System{% endblock %}
+
+{% block content %}
+
+    <div class="card login-card">
+        <h1>Access denied</h1>
+        <p class="subtitle">
+            Your account does not have permission to open this page.
+            Trainers need to be in the "Trainer" group; reports are for admin staff.
+        </p>
+        <a class="btn" href="{% url 'home' %}">Go to home</a>
+    </div>
+
+{% endblock %}
