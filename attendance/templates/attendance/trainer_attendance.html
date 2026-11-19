@@ -1,240 +1,240 @@
-<!DOCTYPE html>
-<html>
+{% extends 'attendance/base.html' %}
 
-<head>
-    <title>Trainer Attendance</title>
-</head>
+{% block title %}Mark attendance · Attendance System{% endblock %}
 
-<body>
+{% block content %}
 
-    <h1>Trainer Attendance</h1>
-
-
-    <!-- LOGOUT -->
-
-    <form method="post" action="{% url 'logout' %}">
-        {% csrf_token %}
-
-        <button type="submit">
-            Logout
-        </button>
-    </form>
-
-
-    <!-- SELECTED CLASS -->
+    <h1>Mark attendance</h1>
 
     {% if selected_group %}
-
-        <h2>
-            {{ selected_group.name }} - {{ selected_group.course.code }}
-        </h2>
-
+        <p class="subtitle">
+            {{ selected_group.name }} · {{ selected_group.course.code }}
+            · Class days: {{ selected_group.schedule_display }}
+        </p>
     {% endif %}
 
 
     <!-- CLASS AND DATE SELECTOR -->
 
-    <form method="get">
+    <form method="get" class="card row">
 
-        <label for="group">
-            Select class:
+        <label class="field" for="group">
+            Class
+            <select id="group" name="group">
+                {% for group in class_groups %}
+                    <option value="{{ group.id }}"
+                        {% if group.id == selected_group.id %}selected{% endif %}>
+                        {{ group.name }} - {{ group.course.code }}
+                    </option>
+                {% empty %}
+                    <option value="">No classes set up yet</option>
+                {% endfor %}
+            </select>
         </label>
 
-        <select id="group" name="group">
-
-            {% for group in class_groups %}
-
-                <option
-                    value="{{ group.id }}"
-                    {% if group.id == selected_group.id %}
-                        selected
-                    {% endif %}
-                >
-                    {{ group.name }} - {{ group.course.code }}
-                </option>
-
-            {% endfor %}
-
-        </select>
-
-
-        <label for="date">
-            Select class date:
+        <label class="field" for="date">
+            Class date
+            <input type="date" id="date" name="date" value="{{ today|date:'Y-m-d' }}">
         </label>
 
-        <input
-            type="date"
-            id="date"
-            name="date"
-            value="{{ today|date:'Y-m-d' }}"
-        >
+        <button type="submit" class="btn btn-primary">Load</button>
 
-        <button type="submit">
-            Load
-        </button>
+        <span class="spacer"></span>
+
+        {% if previous_session %}
+            <a class="btn"
+               href="?group={{ selected_group.id }}&amp;date={{ previous_session.date|date:'Y-m-d' }}">
+                ← Previous class ({{ previous_session.date|date:'D j M' }})
+            </a>
+        {% endif %}
+
+        {% if next_session %}
+            <a class="btn"
+               href="?group={{ selected_group.id }}&amp;date={{ next_session.date|date:'Y-m-d' }}">
+                Next class ({{ next_session.date|date:'D j M' }}) →
+            </a>
+        {% endif %}
 
     </form>
 
 
-    <p>
-        Date: {{ today }}
-    </p>
+    <h2>{{ today|date:'l j F Y' }}</h2>
 
 
     <!-- ATTENDANCE SECTION -->
 
     {% if session %}
 
-        <h3>
-            Active Students
-        </h3>
-
-
-        <!-- WHOLE CLASS STATUS -->
-
         {% if students %}
 
-            <form method="post">
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value">{{ students|length }}</div>
+                    <div class="stat-label">Active students</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">{{ marked_count }}</div>
+                    <div class="stat-label">Marked</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">{{ unmarked_count }}</div>
+                    <div class="stat-label">Not marked yet</div>
+                </div>
+            </div>
+
+
+            <!-- INDIVIDUAL ATTENDANCE -->
+
+            <form method="post" class="card" id="attendance-form">
 
                 {% csrf_token %}
 
-                <input
-                    type="hidden"
-                    name="group"
-                    value="{{ selected_group.id }}"
-                >
+                <input type="hidden" name="group" value="{{ selected_group.id }}">
+                <input type="hidden" name="date" value="{{ today|date:'Y-m-d' }}">
 
-                <input
-                    type="hidden"
-                    name="date"
-                    value="{{ today|date:'Y-m-d' }}"
-                >
+                {% if is_future %}
+
+                    <p class="subtitle">
+                        This date is in the future. Present, Absent and Leave
+                        can be entered on the day; you can still mark the whole
+                        class Holiday or Cancelled below.
+                    </p>
+
+                {% else %}
+
+                    <div class="row" style="margin-bottom: 8px;">
+                        <span class="spacer"></span>
+                        <button type="button" class="btn btn-small" id="mark-all-present">
+                            Set everyone Present
+                        </button>
+                    </div>
+
+                {% endif %}
+
+                <ul class="student-list">
+
+                    {% for student in students %}
+
+                        <li class="student-row">
+
+                            <div class="student-name">
+                                <strong>{{ student.full_name }}</strong>
+                                <div class="student-id">{{ student.student_id }}</div>
+                            </div>
+
+                            {% if student.saved_status == 'H' %}
+                                <span class="locked-status">Holiday</span>
+                            {% elif student.saved_status == 'C' %}
+                                <span class="locked-status">Cancelled</span>
+                            {% endif %}
+
+                            {% if not is_future %}
+                                <div class="status-choice" role="radiogroup"
+                                     aria-label="Attendance for {{ student.full_name }}">
+
+                                    <input type="radio" id="s{{ student.id }}-P"
+                                           name="attendance_{{ student.id }}" value="P"
+                                           {% if student.saved_status == 'P' %}checked{% endif %}>
+                                    <label for="s{{ student.id }}-P">Present</label>
+
+                                    <input type="radio" id="s{{ student.id }}-A"
+                                           name="attendance_{{ student.id }}" value="A"
+                                           {% if student.saved_status == 'A' %}checked{% endif %}>
+                                    <label for="s{{ student.id }}-A">Absent</label>
+
+                                    <input type="radio" id="s{{ student.id }}-L"
+                                           name="attendance_{{ student.id }}" value="L"
+                                           {% if student.saved_status == 'L' %}checked{% endif %}>
+                                    <label for="s{{ student.id }}-L">Leave</label>
+
+                                </div>
+                            {% endif %}
+
+                        </li>
+
+                    {% endfor %}
+
+                </ul>
+
+                {% if not is_future %}
+                    <div class="row" style="margin-top: 12px;">
+                        <button type="submit" class="btn btn-primary">
+                            Save attendance
+                        </button>
+                    </div>
+                {% endif %}
+
+            </form>
 
 
-                <button
-                    type="submit"
-                    name="class_status"
-                    value="H"
-                    onclick="return confirm('Are you sure you want to mark the whole class as Holiday? This will replace any existing attendance for this date.');"
-                >
-                    Mark Whole Class Holiday
+            <!-- WHOLE CLASS STATUS -->
+
+            <form method="post" class="card row">
+
+                {% csrf_token %}
+
+                <input type="hidden" name="group" value="{{ selected_group.id }}">
+                <input type="hidden" name="date" value="{{ today|date:'Y-m-d' }}">
+
+                <div class="spacer">
+                    <strong>Whole class</strong>
+                    <div class="student-id">
+                        Replaces any attendance already saved for this date.
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-danger" name="class_status" value="H"
+                    onclick="return confirm('Are you sure you want to mark the whole class as Holiday? This will replace any existing attendance for this date.');">
+                    Mark whole class Holiday
                 </button>
 
-
-                <button
-                    type="submit"
-                    name="class_status"
-                    value="C"
-                    onclick="return confirm('Are you sure you want to mark the whole class as Cancelled? This will replace any existing attendance for this date.');"
-                >
-                    Mark Whole Class Cancelled
+                <button type="submit" class="btn btn-danger" name="class_status" value="C"
+                    onclick="return confirm('Are you sure you want to mark the whole class as Cancelled? This will replace any existing attendance for this date.');">
+                    Mark whole class Cancelled
                 </button>
 
             </form>
 
-            <br>
+        {% else %}
+
+            <div class="card empty">No active students found for this date.</div>
 
         {% endif %}
 
-
-        <!-- INDIVIDUAL ATTENDANCE -->
-
-        <form method="post">
-
-            {% csrf_token %}
-
-            <input
-                type="hidden"
-                name="group"
-                value="{{ selected_group.id }}"
-            >
-
-            <input
-                type="hidden"
-                name="date"
-                value="{{ today|date:'Y-m-d' }}"
-            >
-
-
-            {% for student in students %}
-
-                <p>
-
-                    <strong>
-                        {{ student.student_id }} -
-                        {{ student.full_name }}
-                    </strong>
-
-
-                    <label>
-                        <input
-                            type="radio"
-                            name="attendance_{{ student.id }}"
-                            value="P"
-                            {% if student.saved_status == 'P' %}
-                                checked
-                            {% endif %}
-                        >
-                        Present
-                    </label>
-
-
-                    <label>
-                        <input
-                            type="radio"
-                            name="attendance_{{ student.id }}"
-                            value="A"
-                            {% if student.saved_status == 'A' %}
-                                checked
-                            {% endif %}
-                        >
-                        Absent
-                    </label>
-
-
-                    <label>
-                        <input
-                            type="radio"
-                            name="attendance_{{ student.id }}"
-                            value="L"
-                            {% if student.saved_status == 'L' %}
-                                checked
-                            {% endif %}
-                        >
-                        Leave
-                    </label>
-
-                </p>
-
-            {% empty %}
-
-                <p>
-                    No active students found.
-                </p>
-
-            {% endfor %}
-
-
-            {% if students %}
-
-                <button type="submit">
-                    Submit Attendance
-                </button>
-
-            {% endif %}
-
-        </form>
-
-
     {% else %}
 
-        <h3>
+        <div class="card empty">
             No class scheduled for this date.
-        </h3>
+            {% if next_session %}
+                The next class is on
+                <a href="?group={{ selected_group.id }}&amp;date={{ next_session.date|date:'Y-m-d' }}">
+                    {{ next_session.date|date:'l j F' }}</a>.
+            {% endif %}
+        </div>
 
     {% endif %}
 
+{% endblock %}
 
-</body>
 
-</html>
+{% block scripts %}
+    <script>
+        // Convenience only: ticks "Present" for every student who has no
+        // P/A/L selected yet. Nothing is saved until "Save attendance".
+        (function () {
+            var button = document.getElementById('mark-all-present');
+            if (!button) { return; }
+
+            button.addEventListener('click', function () {
+                var form = document.getElementById('attendance-form');
+                var groups = form.querySelectorAll('.status-choice');
+
+                groups.forEach(function (group) {
+                    if (!group.querySelector('input:checked')) {
+                        group.querySelector('input[value=P]').checked = true;
+                    }
+                });
+            });
+        })();
+    </script>
+{% endblock %}

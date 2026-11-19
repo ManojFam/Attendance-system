@@ -1,0 +1,32 @@
+.class-days-hint {
+    margin: 4px 0 12px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.8125rem;
+}
+
+.class-days-hint.is-ok {
+    background: #e6f4ea;
+    color: #1e6b34;
+}
+
+.class-days-hint.is-warning {
+    background: #fff4e0;
+    color: #8a5300;
+}
+
+.class-days-hint.is-error {
+    background: #fde8e8;
+    color: #a12020;
+}
+
+.class-day-disabled {
+    opacity: 0.45;
+}
+
+@media (prefers-color-scheme: dark) {
+    .class-days-hint.is-ok { background: #193b25; color: #9be0b0; }
+    .class-days-hint.is-warning { background: #3d2c0b; color: #f3c46b; }
+    .class-days-hint.is-error { background: #431818; color: #f4a3a3; }
+}

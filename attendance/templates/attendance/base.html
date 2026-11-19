@@ -1,0 +1,71 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Attendance System{% endblock %}</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="{% static 'attendance/css/app.css' %}">
+</head>
+
+<body>
+
+    <header class="topbar">
+        <div class="topbar-inner">
+
+            <a class="brand" href="{% url 'home' %}">Attendance System</a>
+
+            {% if user.is_authenticated %}
+
+                <nav class="nav">
+                    {% if user_is_trainer %}
+                        <a href="{% url 'trainer_attendance' %}"
+                           {% if request.resolver_match.url_name == 'trainer_attendance' %}class="active"{% endif %}>
+                            Mark attendance
+                        </a>
+                    {% endif %}
+
+                    {% if user_is_report_viewer %}
+                        <a href="{% url 'attendance_report' %}"
+                           {% if request.resolver_match.url_name == 'attendance_report' %}class="active"{% endif %}>
+                            Reports
+                        </a>
+                        <a href="{% url 'admin:index' %}">Admin</a>
+                    {% endif %}
+                </nav>
+
+                <div class="user-box">
+                    <span>{{ user.get_full_name|default:user.username }}</span>
+
+                    <!-- Logout must be a POST in modern Django -->
+                    <form method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-small">Log out</button>
+                    </form>
+                </div>
+
+            {% endif %}
+
+        </div>
+    </header>
+
+    <main>
+
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+
+    </main>
+
+    {% block scripts %}{% endblock %}
+
+</body>
+
+</html>

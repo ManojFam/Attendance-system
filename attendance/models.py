@@ -22,6 +22,17 @@ class ClassGroup(models.Model):
         (7, '7 days per week'),
     ]
 
+    # Index matches date.weekday(): Monday = 0 ... Sunday = 6
+    WEEKDAY_FIELDS = (
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday',
+        'sunday',
+    )
+
     name = models.CharField(max_length=100)
 
     course = models.ForeignKey(
@@ -42,16 +53,27 @@ class ClassGroup(models.Model):
     saturday = models.BooleanField(default=False)
     sunday = models.BooleanField(default=False)
 
+    def scheduled_weekdays(self):
+        """Return the set of weekday numbers (0 = Monday) this group teaches."""
+        return {
+            index
+            for index, field in enumerate(self.WEEKDAY_FIELDS)
+            if getattr(self, field)
+        }
+
+    def schedule_display(self):
+        """Short label such as 'Tue, Thu, Fri'."""
+        return ", ".join(
+            field[:3].title()
+            for field in self.WEEKDAY_FIELDS
+            if getattr(self, field)
+        ) or "—"
+
     def clean(self):
 
         selected_days = [
-            self.monday,
-            self.tuesday,
-            self.wednesday,
-            self.thursday,
-            self.friday,
-            self.saturday,
-            self.sunday,
+            getattr(self, field)
+            for field in self.WEEKDAY_FIELDS
         ]
 
         number_of_selected_days = sum(selected_days)
@@ -110,6 +132,19 @@ class Student(models.Model):
         blank=True
     )
 
+    def clean(self):
+
+        if (
+            self.start_date
+            and self.end_date
+            and self.end_date < self.start_date
+        ):
+            raise ValidationError({
+                'end_date': (
+                    "End date cannot be before the start date."
+                )
+            })
+
     def __str__(self):
         return f"{self.student_id} - {self.full_name}"
 
@@ -147,6 +182,12 @@ class Attendance(models.Model):
         ('H', 'Holiday'),
         ('C', 'Cancelled'),
     ]
+
+    # Statuses a trainer sets per student.
+    INDIVIDUAL_STATUSES = ('P', 'A', 'L')
+
+    # Statuses a trainer sets for the whole class.
+    CLASS_STATUSES = ('H', 'C')
 
     student = models.ForeignKey(
         Student,

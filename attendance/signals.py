@@ -1,35 +1,38 @@
-from datetime import timedelta
-
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from .models import Student, ClassSession
+from .models import ClassGroup, Student
+from .services import generate_sessions, sync_group_schedule
 
 
 @receiver(post_save, sender=Student)
-def create_student_sessions(sender, instance, created, **kwargs):
+def create_student_sessions(sender, instance, created, raw=False, **kwargs):
+    """
+    When a student is saved, make sure their class group has a session
+    for every scheduled weekday in the student's enrolment period.
+    """
 
-    current_date = instance.start_date
+    # Skip while loading fixtures (loaddata).
+    if raw:
+        return
 
-    weekday_fields = {
-        0: 'monday',
-        1: 'tuesday',
-        2: 'wednesday',
-        3: 'thursday',
-        4: 'friday',
-        5: 'saturday',
-        6: 'sunday',
-    }
+    generate_sessions(
+        instance.class_group,
+        instance.start_date,
+        instance.end_date,
+    )
 
-    while current_date <= instance.end_date:
 
-        weekday_field = weekday_fields[current_date.weekday()]
+@receiver(post_save, sender=ClassGroup)
+def update_group_sessions(sender, instance, created, raw=False, **kwargs):
+    """
+    When a class group's weekdays change, bring FUTURE sessions in line
+    with the new schedule. Past sessions and any session that already has
+    attendance are never deleted.
+    """
 
-        if getattr(instance.class_group, weekday_field):
+    # A brand new group has no students yet.
+    if raw or created:
+        return
 
-            ClassSession.objects.get_or_create(
-                class_group=instance.class_group,
-                date=current_date
-            )
-
-        current_date += timedelta(days=1)
+    sync_group_schedule(instance)

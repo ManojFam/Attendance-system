@@ -1,0 +1,89 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}{{ student.full_name }} · Attendance System{% endblock %}
+
+{% block content %}
+
+    <p><a href="{% url 'attendance_report' %}">← Back to report</a></p>
+
+    <h1>{{ student.full_name }}</h1>
+    <p class="subtitle">
+        {{ student.student_id }} ·
+        {{ student.class_group.name }} ({{ student.class_group.course.code }}) ·
+        {{ student.start_date|date:'j M Y' }} – {{ student.end_date|date:'j M Y' }} ·
+        <span class="badge">{{ status }}</span>
+        · <a href="{% url 'admin:attendance_student_change' student.pk %}">Edit in admin</a>
+    </p>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-value">
+                {% if summary.eligible_sessions %}{{ summary.percentage_display }}{% else %}—{% endif %}
+            </div>
+            <div class="stat-label">Attendance</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">{{ summary.present }}</div>
+            <div class="stat-label">Present</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">{{ summary.absent }}</div>
+            <div class="stat-label">Absent</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">{{ summary.leave }}</div>
+            <div class="stat-label">Leave</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">{{ summary.holiday }} / {{ summary.cancelled }}</div>
+            <div class="stat-label">Holiday / Cancelled</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">{{ summary.unmarked }}</div>
+            <div class="stat-label">Unmarked</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Tests</h2>
+        <p>
+            Entry: {{ student.entry_test_score|default:"—" }} {{ student.entry_test_level }}
+            &nbsp;·&nbsp;
+            Exit: {{ student.exit_test_score|default:"—" }} {{ student.exit_test_level }}
+        </p>
+    </div>
+
+    <div class="card table-wrap">
+
+        <h2>Sessions</h2>
+
+        {% if records %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Day</th>
+                        <th>Attendance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                        <tr>
+                            <td>{{ record.session.date|date:'j M Y' }}</td>
+                            <td>{{ record.session.date|date:'l' }}</td>
+                            <td>
+                                <span class="badge {% if record.code %}badge-{{ record.code }}{% elif record.label == 'Unmarked' %}badge-warn{% endif %}">
+                                    {{ record.label }}
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty">No sessions in this student's enrolment period.</p>
+        {% endif %}
+
+    </div>
+
+{% endblock %}
